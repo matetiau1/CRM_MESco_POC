@@ -1,83 +1,36 @@
 <!DOCTYPE html>
-<html lang="pl">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRM MESco</title>
-    <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+    <title>CRM Notes</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: 'Segoe UI', sans-serif;
-            background: #faf9f8;
-            color: #323130;
-            padding: 12px;
-            font-size: 13px;
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid #0078d4;
-        }
-        h2 { color: #0078d4; font-size: 14px; font-weight: 600; margin: 0; }
-        .badge { background: #e1dfdd; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; }
-        .status { padding: 8px; margin-bottom: 8px; border-radius: 4px; font-size: 12px; background: #dffcf0; color: #107c10; }
-        .card-list { display: flex; flex-direction: column; gap: 8px; }
-        .card {
-            background: white;
-            border: 1px solid #e1dfdd;
-            border-left: 4px solid #0078d4;
-            border-radius: 4px;
-            padding: 10px;
-            box-shadow: 0 1.6px 3.6px rgba(0,0,0,.132);
-        }
+        body { font-family: Segoe UI, sans-serif; background: #faf9f8; padding: 12px; margin: 0; }
+        h2 { color: #0078d4; font-size: 14px; margin: 0 0 12px 0; }
+        .badge { background: #e1dfdd; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; float: right; margin-top: 2px; }
+        .status { background: #dffcf0; color: #107c10; padding: 8px; border-radius: 4px; margin-bottom: 12px; font-size: 12px; }
+        .card { background: white; border: 1px solid #e1dfdd; border-left: 4px solid #0078d4; padding: 10px; margin-bottom: 8px; border-radius: 4px; }
         .card-title { font-weight: 600; font-size: 13px; color: #201f1e; margin-bottom: 4px; }
         .card-meta { font-size: 11px; color: #605e5c; }
-        .card-meta span { margin-right: 12px; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h2>CRM Notes</h2>
-        <span class="badge" id="count">3</span>
+    <h2>CRM Notes <span class="badge">3</span></h2>
+    
+    <div class="status">✅ Demo version</div>
+    
+    <div class="card">
+        <div class="card-title">Firma A Sp. z o.o.</div>
+        <div class="card-meta">ID: #1 | Dodano: 2024-01-15</div>
     </div>
     
-    <div class="status">✅ Demo version (bez Azure AD)</div>
+    <div class="card">
+        <div class="card-title">Firma B - Consulting</div>
+        <div class="card-meta">ID: #2 | Dodano: 2024-01-16</div>
+    </div>
     
-    <div class="card-list" id="cardList"></div>
-
-    <script>
-        const DEMO_DATA = [
-            { ID: 1, Title: "Firma A Sp. z o.o.", Created: "2024-01-15" },
-            { ID: 2, Title: "Firma B - Consulting", Created: "2024-01-16" },
-            { ID: 3, Title: "Firma C GmbH", Created: "2024-01-17" }
-        ];
-
-        // Pokaż demo dane
-        function renderData() {
-            const cardList = document.getElementById('cardList');
-            DEMO_DATA.forEach(item => {
-                const card = document.createElement('div');
-                card.className = 'card';
-                card.innerHTML = `
-                    <div class="card-title">${item.Title}</div>
-                    <div class="card-meta">
-                        <span>ID: #${item.ID}</span>
-                        <span>Dodano: ${item.Created}</span>
-                    </div>
-                `;
-                cardList.appendChild(card);
-            });
-        }
-
-        // Office ready
-        Office.onReady(() => {
-            console.log('Office ready');
-            renderData();
-        });
-    </script>
+    <div class="card">
+        <div class="card-title">Firma C GmbH</div>
+        <div class="card-meta">ID: #3 | Dodano: 2024-01-17</div>
+    </div>
 </body>
 </html>
