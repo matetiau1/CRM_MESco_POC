@@ -3,170 +3,423 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test SharePoint REST API - Firmy</title>
-    <!-- Office.js API -->
-    <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge">
+    <title>CRM MESco - SharePoint Notes</title>
+    
+    <!-- Office.js -->
+    <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+    
+    <!-- MSAL.js v2 (Browser) - dla SSO bez popup problemów -->
+    <script src="https://alcdn.msauth.net/browser/2.30.0/js/msal-browser.min.js"></script>
+    
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #faf9f8;
+            color: #323130;
             padding: 12px;
-            background-color: #faf9f8;
-            color: #323130;
-        }
-        .header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 12px;
-            border-bottom: 2px solid #0078d4;
-            padding-bottom: 6px;
-        }
-        h3 {
-            margin: 0;
-            color: #0078d4;
-            font-size: 15px;
-        }
-        .count-badge {
-            background: #e1dfdd;
-            color: #323130;
-            font-size: 11px;
-            padding: 2px 6px;
-            border-radius: 10px;
-            font-weight: bold;
-        }
-        .loading {
-            color: #605e5c;
-            font-style: italic;
             font-size: 13px;
         }
-        .card-container {
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #0078d4;
+        }
+        
+        h2 {
+            color: #0078d4;
+            font-size: 14px;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .badge {
+            background: #e1dfdd;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        
+        .status {
+            padding: 8px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        .status.loading {
+            background: #e7eef7;
+            color: #0078d4;
+        }
+        
+        .status.success {
+            background: #dffcf0;
+            color: #107c10;
+        }
+        
+        .status.error {
+            background: #fde7e9;
+            color: #a80000;
+        }
+        
+        .status.warning {
+            background: #fff4ce;
+            color: #6f5900;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #ccc;
+            border-top: 2px solid #0078d4;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            margin-right: 6px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .card-list {
             display: flex;
             flex-direction: column;
             gap: 8px;
         }
+        
         .card {
-            background: #ffffff;
+            background: white;
             border: 1px solid #e1dfdd;
             border-left: 4px solid #0078d4;
             border-radius: 4px;
             padding: 10px;
-            box-shadow: 0 1.6px 3.6px 0 rgba(0,0,0,.132);
+            box-shadow: 0 1.6px 3.6px rgba(0,0,0,.132);
+            cursor: pointer;
+            transition: box-shadow 0.2s;
         }
+        
+        .card:hover {
+            box-shadow: 0 3.2px 6.4px rgba(0,0,0,.16);
+        }
+        
         .card-title {
             font-weight: 600;
             font-size: 13px;
             color: #201f1e;
+            margin-bottom: 4px;
         }
-        .card-details {
+        
+        .card-meta {
             font-size: 11px;
             color: #605e5c;
-            margin-top: 4px;
         }
-        .error {
-            background: #fde7e9;
-            color: #a80000;
-            padding: 8px;
+        
+        .card-meta span {
+            margin-right: 12px;
+        }
+        
+        .email-info {
+            background: #f3f2f1;
             border-radius: 4px;
+            padding: 8px;
+            margin-bottom: 12px;
+            font-size: 11px;
+        }
+        
+        .email-info strong {
+            color: #0078d4;
+        }
+        
+        button {
+            background: #0078d4;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
             font-size: 12px;
+            margin-top: 8px;
+        }
+        
+        button:hover {
+            background: #005a9e;
+        }
+        
+        .empty {
+            text-align: center;
+            padding: 20px;
+            color: #605e5c;
         }
     </style>
 </head>
 <body>
-
     <div class="header">
-        <h3>Baza Firm (SharePoint)</h3>
-        <span id="badge" class="count-badge">...</span>
+        <h2>CRM Notes - SharePoint</h2>
+        <span class="badge" id="count">0</span>
     </div>
-
-    <div id="status" class="loading">Inicjalizacja dodatku...</div>
-    <div id="gallery" class="card-container"></div>
+    
+    <div id="status" class="status loading">
+        <span class="spinner"></span>Inicjalizacja...
+    </div>
+    
+    <div id="emailInfo"></div>
+    <div id="cardList" class="card-list"></div>
 
     <script>
-        // =========================================================
-        // PARAMETRY TWOJEJ LISTY SHAREPOINT
-        // =========================================================
-        const SHAREPOINT_SITE_URL = "https://mescocompl.sharepoint.com/sites/CRMSystemPOC";
-        const SHAREPOINT_LIST_NAME = "Firmy";
-        // =========================================================
+        // =========================================================================
+        // KONFIGURACJA MSAL
+        // =========================================================================
+        const msalConfig = {
+            auth: {
+                clientId: '4ad84be0-f918-4dfa-8006-a408554ec666', // ⚠️ ZMIEŃ NA SWÓJ APP ID
+                authority: 'https://login.microsoftonline.com/common',
+                redirectUri: window.location.href
+            },
+            cache: {
+                cacheLocation: 'localStorage'
+            }
+        };
 
+        const scopes = ['https://mescocompl.sharepoint.com/.default'];
+        const sharePointUrl = 'https://mescocompl.sharepoint.com/sites/CRMSystemPOC';
+        const listName = 'Firmy';
+
+        let msalInstance = null;
+        let currentEmail = '';
+
+        // =========================================================================
+        // INICJALIZACJA
+        // =========================================================================
         Office.onReady(function(info) {
             if (info.host === Office.HostType.Outlook) {
-                document.getElementById('status').innerText = 'Pobieranie listy firm...';
-                fetchCompanies();
+                console.log('✅ Office.js ready - Outlook');
+                initializeMsal();
+                loadEmailData();
             } else {
-                // Pozwala na szybki podgląd w zwykłej przeglądarce podczas testów
-                document.getElementById('status').innerText = 'Testowanie poza Outlookiem...';
-                fetchCompanies();
+                updateStatus('⚠️ Testowanie poza Outlookiem', 'warning');
+                initializeMsal();
             }
         });
 
-        async function fetchCompanies() {
-            // Zapytanie OData: Pobieramy ID, Tytuł (Nazwę firmy) oraz Datę utworzenia
-            const endpoint = `${SHAREPOINT_SITE_URL}/_api/web/lists/getbytitle('${SHAREPOINT_LIST_NAME}')/items?$select=ID,Title,Created&$top=15&$orderby=Title asc`;
-
+        async function initializeMsal() {
             try {
+                msalInstance = new msal.PublicClientApplication(msalConfig);
+                await msalInstance.initialize();
+                console.log('✅ MSAL initialized');
+                
+                // Spróbuj SSO (silent token)
+                await ssoLogin();
+                
+            } catch (error) {
+                console.error('❌ MSAL init error:', error);
+                updateStatus(`Błąd inicjalizacji: ${error.message}`, 'error');
+            }
+        }
+
+        async function ssoLogin() {
+            try {
+                // Try silent SSO first (user already logged in)
+                const accounts = msalInstance.getAllAccounts();
+                
+                if (accounts.length > 0) {
+                    console.log('✅ User already logged in (SSO)');
+                    const account = accounts[0];
+                    currentEmail = account.username;
+                    fetchSharePointData();
+                } else {
+                    console.log('ℹ️ No accounts, trying silent acquire...');
+                    
+                    const silentRequest = {
+                        scopes: scopes,
+                        account: null
+                    };
+                    
+                    try {
+                        const response = await msalInstance.acquireTokenSilent(silentRequest);
+                        console.log('✅ Silent token acquired');
+                        fetchSharePointData();
+                    } catch (silentError) {
+                        console.warn('⚠️ Silent acquire failed, need interactive login');
+                        updateStatus('⚠️ Logowanie wymagane - kliknij poniżej', 'warning');
+                        
+                        // Pokaż guzik logowania
+                        const cardList = document.getElementById('cardList');
+                        cardList.innerHTML = `
+                            <div class="empty">
+                                <p>Wymagane zalogowanie do SharePoint</p>
+                                <button onclick="interactiveLogin()">Zaloguj się</button>
+                            </div>
+                        `;
+                    }
+                }
+            } catch (error) {
+                console.error('❌ SSO error:', error);
+                updateStatus(`Błąd logowania: ${error.message}`, 'error');
+            }
+        }
+
+        async function interactiveLogin() {
+            try {
+                updateStatus('Logowanie...', 'loading');
+                
+                const loginRequest = {
+                    scopes: scopes
+                };
+                
+                const response = await msalInstance.loginPopup(loginRequest);
+                currentEmail = response.account.username;
+                console.log('✅ Interactive login successful');
+                
+                fetchSharePointData();
+            } catch (error) {
+                console.error('❌ Interactive login failed:', error);
+                updateStatus(`Logowanie nie powiodło się: ${error.message}`, 'error');
+            }
+        }
+
+        // =========================================================================
+        // POBRANIE DANYCH Z SHAREPOINT
+        // =========================================================================
+        async function fetchSharePointData() {
+            try {
+                updateStatus('Pobieranie danych z SharePoint...', 'loading');
+                
+                // Pobranie tokena
+                const tokenRequest = {
+                    scopes: scopes,
+                    account: msalInstance.getActiveAccount()
+                };
+                
+                const tokenResponse = await msalInstance.acquireTokenSilent(tokenRequest);
+                const token = tokenResponse.accessToken;
+                console.log('✅ Token acquired');
+                
+                // SharePoint REST API call
+                const endpoint = `${sharePointUrl}/_api/web/lists/getbytitle('${listName}')/items?$select=ID,Title,Created&$top=15&$orderby=Title asc`;
+                
                 const response = await fetch(endpoint, {
                     method: 'GET',
                     headers: {
-                        'Accept': 'application/json;odata=nometadata',
-                        'Content-Type': 'application/json'
-                    },
-                    credentials: 'include' // Wykorzystuje aktywne zalogowanie do Office 365
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json;odata=nometadata'
+                    }
                 });
-
-                if (!response.ok) {
-                    throw new Error(`Błąd HTTP ${response.status}: ${response.statusText}`);
-                }
-
-                const data = await response.json();
-                document.getElementById('status').style.display = 'none';
                 
-                renderGallery(data.value);
-
+                if (!response.ok) {
+                    throw new Error(`SharePoint API error ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('✅ Data fetched:', data.value.length, 'items');
+                
+                renderData(data.value);
+                updateStatus('✅ Dane załadowane', 'success');
+                
             } catch (error) {
-                console.error("Błąd SharePoint REST API:", error);
-                showError(`Błąd pobierania danych: ${error.message}`);
+                console.error('❌ SharePoint fetch error:', error);
+                updateStatus(`Błąd pobierania danych: ${error.message}`, 'error');
             }
         }
 
-        function renderGallery(items) {
-            const galleryDiv = document.getElementById('gallery');
-            const badge = document.getElementById('badge');
-            galleryDiv.innerHTML = '';
-
-            if (!items || items.length === 0) {
-                galleryDiv.innerHTML = '<p class="loading">Brak firm na liście.</p>';
-                badge.innerText = '0';
-                return;
-            }
-
-            badge.innerText = items.length;
-
-            items.forEach(item => {
-                const card = document.createElement('div');
-                card.className = 'card';
+        // =========================================================================
+        // ŁADOWANIE DANYCH EMAILA
+        // =========================================================================
+        function loadEmailData() {
+            try {
+                if (!Office.context || !Office.context.mailbox) {
+                    console.log('ℹ️ Brak Office context (testowanie poza Outlookiem)');
+                    return;
+                }
                 
-                const createdDate = new Date(item.Created).toLocaleDateString('pl-PL');
-
-                card.innerHTML = `
-                    <div class="card-title">${escapeHtml(item.Title || 'Brak nazwy')}</div>
-                    <div class="card-details">ID wpisu: #${item.ID} | Dodano: ${createdDate}</div>
+                const item = Office.context.mailbox.item;
+                if (!item) {
+                    console.log('⚠️ Brak wybranej wiadomości');
+                    return;
+                }
+                
+                const from = item.from?.emailAddress || '';
+                const subject = item.subject || '';
+                
+                const emailDiv = document.getElementById('emailInfo');
+                emailDiv.innerHTML = `
+                    <div class="email-info">
+                        <strong>Od:</strong> ${escapeHtml(from)}<br/>
+                        <strong>Temat:</strong> ${escapeHtml(subject)}
+                    </div>
                 `;
                 
-                galleryDiv.appendChild(card);
+                currentEmail = from;
+                console.log('📧 Email loaded:', from);
+                
+            } catch (error) {
+                console.error('❌ Email load error:', error);
+            }
+        }
+
+        // =========================================================================
+        // RENDEROWANIE
+        // =========================================================================
+        function renderData(items) {
+            const cardList = document.getElementById('cardList');
+            const countBadge = document.getElementById('count');
+            
+            cardList.innerHTML = '';
+            countBadge.textContent = items.length;
+            
+            if (!items || items.length === 0) {
+                cardList.innerHTML = '<div class="empty">Brak firm w bazie</div>';
+                return;
+            }
+            
+            items.forEach(item => {
+                const createdDate = new Date(item.Created).toLocaleDateString('pl-PL');
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div class="card-title">${escapeHtml(item.Title)}</div>
+                    <div class="card-meta">
+                        <span>ID: #${item.ID}</span>
+                        <span>Dodano: ${createdDate}</span>
+                    </div>
+                `;
+                cardList.appendChild(card);
             });
         }
 
-        function showError(message) {
+        // =========================================================================
+        // UTILITY
+        // =========================================================================
+        function updateStatus(message, type = 'loading') {
             const statusDiv = document.getElementById('status');
-            statusDiv.className = 'error';
-            statusDiv.innerText = message;
+            statusDiv.className = `status ${type}`;
+            
+            if (type === 'loading') {
+                statusDiv.innerHTML = `<span class="spinner"></span>${message}`;
+            } else {
+                statusDiv.textContent = message;
+            }
         }
 
         function escapeHtml(str) {
-            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         }
+
+        // Expose for onclick handler
+        window.interactiveLogin = interactiveLogin;
     </script>
 </body>
 </html>
